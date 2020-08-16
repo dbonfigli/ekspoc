@@ -1,0 +1,67 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  creationTimestamp: null
+  labels:
+    role: alert-rules
+  name: prometheus-rules
+spec:
+  groups:
+
+  - name: nginx-test2-deployment
+    rules:
+    - alert: nginx-test2-deployment-some-replicas-unavailable
+      expr: "kube_deployment_status_replicas_unavailable{deployment='nginx-test2-deployment'} > 0 or absent(kube_deployment_status_replicas_unavailable{deployment='nginx-test2-deployment'})"
+      for: 1m
+      labels:
+        severity: medium
+      annotations:
+        summary: some pods in deployment are unavailabe
+    - alert: nginx-test2-deployment-no-replicas-available
+      expr: "kube_deployment_status_replicas_available{deployment='nginx-test2-deployment'} == 0 or absent(kube_deployment_status_replicas_unavailable{deployment='nginx-test2-deployment'})"
+      for: 1m
+      labels:
+        severity: high
+      annotations:
+        summary: no pods in deployment are available
+
+  - name: kubelet-exporter
+    rules:
+    - alert: kubelet-metrics-not-working
+      expr: "up{job='kubelet'} == 0"
+      for: 1m
+      labels:
+        severity: medium
+      annotations:
+        summary: cannot get statistics from kubelet
+
+  - name: kube-state-metrics-exporter
+    rules:
+    - alert: kube-state-metrics-not-working
+      expr: "up{job='monitoring-kube-state-metrics'} == 0"
+      for: 1m
+      labels:
+        severity: medium
+      annotations:
+        summary: cannot get statistics for kube-state-metrics
+
+  - name: pods
+    rules:
+    - alert: unschedulable-pods
+      expr: "kube_pod_status_unschedulable > 0"
+      for: 1m
+      labels:
+        severity: medium
+      annotations:
+        summary: some pods in the cluster are not schedulable
+
+  - name: test-firing-alarm
+    rules:
+    - alert: alarm-is-firing
+      expr: "vector(1)"
+      for: 1m
+      labels:
+        severity: medium
+      annotations:
+        summary: just a test alarm to see what happen when it fires

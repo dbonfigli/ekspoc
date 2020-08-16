@@ -1,0 +1,18 @@
+nginxVersion: 1.17.6
+
+labels:
+  testlabel: test1
+
+# example of setting values for child chart (i.e. the chart you import):
+redis:
+  usePassword: false
+  master:
+    persistence:
+      enabled: false
+  slave:
+    persistence:
+      enabled: false
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true

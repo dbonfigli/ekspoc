@@ -1,0 +1,85 @@
+aws-alb-ingress-controller:
+  enabled: false
+  clusterName: "clustername"
+  awsRegion: "region"
+  awsVpcID: xxx
+  rbac:
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: "arn"
+  resources:
+    requests:
+      cpu: 5m
+      memory: 20Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+external-dns:
+  enabled: false
+  provider: aws
+  policy: sync
+  rbac:
+    serviceAccountAnnotations:
+      eks.amazonaws.com/role-arn: "arn"
+  resources:
+    requests:
+      cpu: 5m
+      memory: 20Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+metrics-server:
+  enabled: false
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  resources:
+    requests:
+      cpu: 5m
+      memory: 20Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
+
+cluster-autoscaler:
+  enabled: false
+  autoDiscovery:
+    clusterName: "clustername"
+  awsRegion: "region"
+  image:
+    tag: v1.MAJOR.MINOR
+  rbac:
+    create: true
+    serviceAccountAnnotations:
+      eks.amazonaws.com/role-arn: "arn"
+  extraArgs:
+    skip-nodes-with-local-storage: "false"
+    expander: "least-waste"
+    balance-similar-node-groups: "true"
+    skip-nodes-with-system-pods: "false"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 500Mi
+    requests:
+      cpu: 5m
+      memory: 30Mi
+
+kubernetes-dashboard:
+  enabled: false
+
+containerInsights:
+  enabled: false
+  clusterName: "clustername"
+  awsRegion: "region"
+  cloudwatchMetrics:
+    enabled: false
+
+calicoNetworkPolicyEngine:
+  enabled: false
+
+cloudwatchMetricsAdapter:
+  enabled: false
+  IamRole: "arn"

@@ -1,0 +1,227 @@
+{{- if .Values.cloudwatchMetricsAdapter.enabled -}}
+#inspired from: https://github.com/awslabs/k8s-cloudwatch-adapter
+#########################################################################
+#namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-metrics
+---
+#########################################################################
+#service account k8s-cloudwatch-adapter, to be used by deployment
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+  annotations:
+    eks.amazonaws.com/role-arn: {{.Values.cloudwatchMetricsAdapter.IamRole}}
+---
+###
+#role bindings for k8s-cloudwatch-adapter service account:
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-cloudwatch-adapter:system:auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator #for generic auth mechanism
+subjects:
+- kind: ServiceAccount
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k8s-cloudwatch-adapter-auth-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader #existing role
+subjects:
+- kind: ServiceAccount
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-cloudwatch-adapter:crd-metrics-reader
+  labels:
+    app: k8s-cloudwatch-adapter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-cloudwatch-adapter:crd-metrics-reader #new role, defined below
+subjects:
+  - name: k8s-cloudwatch-adapter
+    namespace: "custom-metrics"
+    kind: ServiceAccount
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-cloudwatch-adapter-resource-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-cloudwatch-adapter-resource-reader #new role, defined below
+subjects:
+- kind: ServiceAccount
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+###
+#roles for k8s-cloudwatch-adapter:
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-cloudwatch-adapter-resource-reader
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - pods
+  - services
+  verbs:
+  - get
+  - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-cloudwatch-adapter:crd-metrics-reader
+  labels:
+    app: k8s-cloudwatch-adapter
+rules:
+- apiGroups:
+  - metrics.aws
+  resources:
+  - "externalmetrics"
+  verbs:
+  - list
+  - get
+  - watch
+#########################################################################
+#bindings for horizontal-pod-autoscaler service account (already existing SA):
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: k8s-cloudwatch-adapter:external-metrics-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: k8s-cloudwatch-adapter:external-metrics-reader #new role, defined below
+subjects:
+- kind: ServiceAccount
+  name: horizontal-pod-autoscaler
+  namespace: kube-system
+#roles for horizontal-pod-autoscaler service account:
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-cloudwatch-adapter:external-metrics-reader
+rules:
+- apiGroups:
+  - external.metrics.k8s.io
+  resources: ["*"]
+  verbs: ["*"]
+
+#########################################################################
+# api service
+---
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1beta1.external.metrics.k8s.io
+spec:
+  service:
+    name: k8s-cloudwatch-adapter
+    namespace: custom-metrics
+  group: external.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100
+#########################################################################
+# custom resource def
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: externalmetrics.metrics.aws
+spec:
+  group: metrics.aws
+  version: v1alpha1
+  names:
+    kind: ExternalMetric
+    plural: externalmetrics
+    singular: externalmetric
+  scope: Namespaced
+#########################################################################
+# service and deploymnent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 6443
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: k8s-cloudwatch-adapter
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: k8s-cloudwatch-adapter
+  name: k8s-cloudwatch-adapter
+  namespace: custom-metrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-cloudwatch-adapter
+  template:
+    metadata:
+      labels:
+        app: k8s-cloudwatch-adapter
+      name: k8s-cloudwatch-adapter
+    spec:
+      securityContext:
+        runAsUser: 0 #fix: currently pod iam roles work ONLY if running with root user, see https://github.com/aws/amazon-eks-pod-identity-webhook/issues/8
+      serviceAccountName: k8s-cloudwatch-adapter
+      containers:
+      - name: k8s-cloudwatch-adapter
+        image: chankh/k8s-cloudwatch-adapter:v0.8.0
+        args:
+        - /adapter
+        - --cert-dir=/tmp
+        - --secure-port=6443
+        - --logtostderr=true
+        - --v=10
+        ports:
+        - containerPort: 6443
+          name: https
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - mountPath: /tmp
+          name: temp-vol
+      volumes:
+      - name: temp-vol
+        emptyDir: {}
+{{- end -}}

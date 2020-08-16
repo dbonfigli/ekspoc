@@ -1,0 +1,93 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EKS Cluster
+
+Parameters:
+
+  Environment:
+    Type: String
+
+  Project:
+    Type: String
+
+  EKSClusterName:
+    Type: String
+
+  VpcId:
+    Type: String
+
+  SubnetIdAZ1:
+    Type: String
+
+  SubnetIdAZ2:
+    Type: String
+
+Resources:
+
+  EKSClusterIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Project}-${Environment}-${EKSClusterName}-eks-cluster-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - eks.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+      - "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
+      Tags:
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Project
+        Value: !Ref Project
+
+  AdditionalClusterSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub "${Project}-${Environment}-${EKSClusterName}-additional-cluster-sg"
+      GroupDescription: additional sg from which control plane can access workers
+      Tags:
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Project
+        Value: !Ref Project
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Sub "${Project}-${Environment}-${EKSClusterName}"
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref AdditionalClusterSG
+        SubnetIds:
+          - !Ref SubnetIdAZ1
+          - !Ref SubnetIdAZ2
+      RoleArn: !GetAtt EKSClusterIAMRole.Arn
+      #Version: omit for default latest
+
+Outputs:
+
+  EKSClusterName:
+    Description: name of the created EKS cluster
+    Value: !Ref EKSCluster
+    Export:
+      Name:
+        !Sub "${AWS::StackName}-EKSClusterName"
+
+# Now manually create IODC Provider (it is not supported by cloud formation):
+# Go to IAM -> Access Management -> Identity providers -> Create Provider
+# Choose OpenID Connect
+# As Provider URL add the OpenID Connect provider URL you find in the aws consle eks cluster page
+# As Audience add sts.amazonaws.com
+
+# Also, logging in not configurable by cloud formation, so manually change it if needed.
+# Also, tags are not configurable by cloud formation, so manually change them if needed.
+# Also, security groups to restrict access to k8s API are not configurable by cloud formation, so manually change them if needed.
+# Also, you cannot configure private access from vpc to the k8s API via cloud formation. so manually change it if needed.

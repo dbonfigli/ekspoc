@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test-autoscaler-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-test-autoscaler-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-test-autoscaler-deployment
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.17.8
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 1500m
+# ...and check the number of worker nodes that go up
+# check for logs with kubectl logs -f deployment/cluster-autoscaler -n kube-system

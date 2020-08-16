@@ -1,0 +1,101 @@
+grafana:
+  enabled: false
+  persistence:
+    enabled: false
+
+AlertmanagerSNSForwarder:
+  enabled: true
+  IamRole: "arn:aws:iam::00000000000:role/ekspoc-development-ekspoc-alertManagerSNSForwarder"
+  region: eu-west-1
+  arnPrefix: "arn:aws:sns:eu-west-1:00000000000:"
+  debug: true
+
+unifiediIngressController:
+  enabled: true
+  alertmanagerHostname: prometheus-test.test.company.info
+  prometheusHostname: alertmanager-test.test.company.info
+#  scheme: internal #or internet-facing
+  scheme: internet-facing
+
+prometheus-operator:
+
+  prometheus:
+    # ingress:
+    #   enabled: true
+    #   annotations:
+    #     kubernetes.io/ingress.class: alb
+    #     alb.ingress.kubernetes.io/scheme: internet-facing
+    #     external-dns.alpha.kubernetes.io/hostname: prometheus-test.company.info
+    #   hosts:
+    #     - name: prometheus-test.test.company.info
+    #       path: /*
+    service:
+      type: NodePort
+    persistence:
+      enabled: false
+    retention: 10d #default, pay attention if using emptyDir (when persistence: false), size of emptyDir can be by default half the size of ram
+
+  alertmanager:
+
+    # ingress:
+    #   enabled: true
+    #   annotations:
+    #     kubernetes.io/ingress.class: alb
+    #     alb.ingress.kubernetes.io/scheme: internet-facing
+    #     external-dns.alpha.kubernetes.io/hostname: alertmanager-test.company.info
+    #   hosts:
+    #     - name: alertmanager-test.test.company.info
+    #       path: /*
+    service:
+      type: NodePort
+
+    config:
+
+      global:
+        # The smarthost and SMTP sender used for mail notifications.
+        smtp_smarthost: 'localhost:25'
+        smtp_from: 'alertmanager@example.org'
+        smtp_auth_username: 'alertmanager'
+        smtp_auth_password: 'password'
+
+      # The root route on which each incoming alert enters.
+      route:
+        group_by: ['alertname', 'cluster', 'service', 'job']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: sns-forwarder #default receiver
+        routes:
+        - match:
+            alertname: Watchdog
+          receiver: 'sns-forwarder'
+
+      receivers:
+      - name: 'default-webhook'
+        webhook_configs:
+        - url: 'https://webhook.site/6b8e28e5-1f9d-4a1f-b101-23394d8810c6'
+      - name: 'default-mail'
+        email_configs:
+        - to: 'team-X+alerts@example.org'
+      - name: 'sns-forwarder'
+        webhook_configs:
+        - send_resolved: True
+          url: http://alertmanager-sns-forwarder-svc:9087/alert/test-bonfigli
+
+      # defaults were:
+      # global:
+      #   resolve_timeout: 5m
+      # receivers:
+      # - name: "null"
+      # route:
+      #   group_by:
+      #   - job
+      #   group_interval: 5m
+      #   group_wait: 30s
+      #   receiver: "null"
+      #   repeat_interval: 12h
+      #   routes:
+      #   - match:
+      #       alertname: Watchdog
+      #     receiver: "null"
+

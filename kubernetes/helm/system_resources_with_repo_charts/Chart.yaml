@@ -1,0 +1,34 @@
+apiVersion: v2
+name: aws-system-resources
+description: Chart to create basic resources for an EKS cluster
+type: application
+version: 1
+appVersion: 1
+
+dependencies:
+
+- name: cluster-autoscaler
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 7.2.2
+  condition: cluster-autoscaler.enabled
+
+- name: metrics-server
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 2.11.1
+  condition: metrics-server.enabled
+
+- name: aws-alb-ingress-controller
+  repository: http://storage.googleapis.com/kubernetes-charts-incubator
+  version: 1.0.0
+  condition: aws-alb-ingress-controller.enabled
+
+- name: external-dns
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.21.2
+  condition: external-dns.enabled
+
+- name: kubernetes-dashboard
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 1.10.1
+  condition: kubernetes-dashboard.enabled
+  

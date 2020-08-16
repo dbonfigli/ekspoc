@@ -1,0 +1,29 @@
+---
+{{- if .Values.unifiediIngressController.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/scheme: {{.Values.unifiediIngressController.scheme}}
+    external-dns.alpha.kubernetes.io/hostname: {{.Values.unifiediIngressController.alertmanagerHostname}}
+    external-dns.alpha.kubernetes.io/hostname: {{.Values.unifiediIngressController.prometheusHostname}}
+    kubernetes.io/ingress.class: alb
+  labels:
+  name: {{.Release.Name}}-prometheus-ingress
+spec:
+  rules:
+  - host: {{.Values.unifiediIngressController.alertmanagerHostname}}
+    http:
+      paths:
+      - backend:
+          serviceName: {{.Release.Name}}-prometheus-oper-alertmanager
+          servicePort: http
+        path: /*
+  - host: {{.Values.unifiediIngressController.prometheusHostname}}
+    http:
+      paths:
+      - backend:
+          serviceName: {{.Release.Name}}-prometheus-oper-prometheus
+          servicePort: http
+        path: /*
+{{- end }}

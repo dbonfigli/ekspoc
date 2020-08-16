@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test2-deployment
+  labels:
+    {{- include "test_application_1.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: nginx-test2
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-test2
+    spec:
+      initContainers:
+      - name: initcontainer
+        image: busybox
+        command: ["/bin/sh", "-c", "echo $USERNAME $PASSWORD" ]
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: testsecret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: testsecret
+              key: password
+      containers:
+      - name: nginx
+        image: nginx:{{ .Values.nginxVersion }}
+        resources:
+          limits:
+            cpu: 3000m
+            memory: 2000Mi
+          requests:
+            cpu: 1300m
+            memory: 1500Mi
+        ports:
+        - containerPort: 80

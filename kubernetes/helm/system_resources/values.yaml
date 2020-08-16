@@ -1,0 +1,31 @@
+
+EKSClusterName: "ekspoc-development-name"
+AWSRegion: "eu-west-1"
+VPCId: "vpcid"
+
+ingressController:
+  enabled: false
+  IamRole: "arn"
+  externalDNS:
+    enabled: true
+    IamRole: "arn"
+
+calicoNetworkPolicyEngine:
+  enabled: false
+
+clusterAutoscaler:
+  enabled: false
+  clusterAutoscaler: "arn"
+
+dashboardUI:
+  enabled: false
+
+metricServer:
+  enabled: false
+
+containerInsights:
+  enabled: false
+
+cloudwatchMetricsAdapter:
+  enabled: false
+  IamRole: "arn"

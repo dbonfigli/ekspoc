@@ -1,0 +1,51 @@
+# add new iam users here.
+#
+# AccessFromCompanyCentralAccountUser was the role used to create the cluster, it has been added by aws at cration time
+# ekspoc-development-ekspoc-eks-node-role is the role to be used in worker nodes, to let them join the cluster
+# AccessFromCompanyCentralAccountUser2 is a role added after, as well as diego.bonfigli user
+# unfortunately aws does not create this resource with "appply" (no last-applied-configuration annotation)
+# so we cannot use kubectl apply just for the new things but we must add the original configuration too 
+#
+# after cluster creation it was:
+# apiVersion: v1
+# data:
+#   mapRoles: |
+#     - groups:
+#       - system:bootstrappers
+#       - system:nodes
+#       rolearn: arn:aws:iam::00000000000:role/ekspoc-development-ekspoc-eks-node-role
+#       username: system:node:{{EC2PrivateDNSName}}
+#     - groups:
+#       - system:masters
+#       rolearn: arn:aws:iam::00000000000:role/AccessFromCompanyCentralAccount
+#       username: AccessFromCompanyCentralAccountUser
+# kind: ConfigMap
+# metadata:
+#   name: aws-auth
+#   namespace: kube-system
+
+apiVersion: v1
+data:
+  mapRoles: |
+    - groups:
+      - system:bootstrappers
+      - system:nodes
+      rolearn: arn:aws:iam::00000000000:role/ekspoc-development-ekspoc-eks-node-role
+      username: system:node:{{EC2PrivateDNSName}}
+    - groups:
+      - system:masters
+      rolearn: arn:aws:iam::00000000000:role/AccessFromCompanyCentralAccount
+      username: AccessFromCompanyCentralAccountUser
+    - groups:
+      - system:masters
+      rolearn: arn:aws:iam::00000000000:role/AccessFromCompanyCentralAccount2
+      username: AccessFromCompanyCentralAccountUser2
+  mapUsers: |
+    - groups:
+      - system:masters
+      userarn: arn:aws:iam::00000000000:user/user.name
+      username: user.name
+kind: ConfigMap
+metadata:
+  name: aws-auth
+  namespace: kube-system

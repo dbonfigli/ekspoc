@@ -1,0 +1,27 @@
+---
+{{- if .Values.clusterAutoscaler.enabled -}}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    k8s-addon: cluster-autoscaler.addons.k8s.io
+    k8s-app: cluster-autoscaler
+  name: metrics-server-PodDisruptionBudget
+spec:
+  selector:
+    matchLabels:
+      k8s-app: kube-dns
+  minAvailable: 1
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    k8s-addon: cluster-autoscaler.addons.k8s.io
+    k8s-app: cluster-autoscaler
+  name: metrics-server-PodDisruptionBudget
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
+  minAvailable: 1
+{{- end -}}

@@ -1,0 +1,38 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::00000000000:role/ekspoc-development-ekspoc-s3ReadOnly
+  name: s3-read-only
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::00000000000:role/ekspoc-development-ekspoc-s3ReadWrite
+  name: s3-read-write
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: amazonlinux-s3-read-only
+spec:
+  serviceAccountName: s3-read-only
+  containers:
+  - name: myapp-amazonlinux
+    image: amazonlinux
+    command: ['sh', '-c', 'yum install -y awscli ; aws s3 ls ; touch x.txt ; aws s3 cp x.txt s3://zappatest-xp']
+    #see write error at end of run with "kubectl logs amazonlinux-s3-read-only"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: amazonlinux-s3-read-write
+spec:
+  serviceAccountName: s3-read-write
+  containers:
+  - name: myapp-amazonlinux
+    image: amazonlinux
+    command: ['sh', '-c', 'yum install -y awscli ; aws s3 ls ; touch x.txt ; aws s3 cp x.txt s3://zappatest-xp']
+    #see write ok at end of run with "kubectl logs amazonlinux-s3-read-write"

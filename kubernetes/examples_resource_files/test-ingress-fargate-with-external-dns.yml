@@ -1,0 +1,53 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-test2-deployment
+spec:
+  selector:
+    matchLabels:
+      app: nginx-test2
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-test2
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.17.8
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-test2-service
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  type: NodePort #required if ingress has annotation "alb.ingress.kubernetes.io/target-type: Instance" which is the default
+  selector:
+    app: nginx-test2
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: "nginx-test2-ingress"
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip #this is required if using fargate!!!
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    external-dns.alpha.kubernetes.io/hostname: ciao.test.company.info
+  labels:
+    app: "nginx-test2-ingress"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: nginx-test2-service
+              servicePort: 80

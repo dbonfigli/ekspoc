@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aws-system-resources
+description: Chart to create basic resources for an EKS cluster
+type: application
+version: 1
+appVersion: 1

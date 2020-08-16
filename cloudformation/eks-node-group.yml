@@ -1,0 +1,179 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EKS node group
+
+Parameters:
+
+  Environment:
+    Type: String
+
+  Project:
+    Type: String
+
+  EKSClusterName:
+    Type: String
+
+  VpcId:
+    Type: String
+
+  SubnetIdAZ1:
+    Type: String
+
+  SubnetIdAZ2:
+    Type: String
+
+  NodeDiskSize:
+    Type: String
+    Default: 20
+
+  NodeInstanceType:
+    Type: String
+
+  MaxSize:
+    Type: String
+    Default: 1
+
+  MinSize:
+    Type: String
+    Default: 1
+
+  DesiredSize:
+    Type: String
+    Default: 1
+
+  SshKey:
+    Type: String
+
+  OneNodeGroupInMultiAZ:
+    Type: String
+    AllowedValues: [ "true", "false" ]
+    Default: "true"
+
+Conditions:
+
+  OneNodeGroupInMultiAZ:
+    !Equals [ !Ref OneNodeGroupInMultiAZ, 'true' ]
+
+  OneNodeGroupPerAZ:
+    !Equals [ !Ref OneNodeGroupInMultiAZ, 'false' ]
+
+
+Resources:
+
+  SSHAccessToNodeSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub "${Project}-${Environment}-${EKSClusterName}-ssh-access-to-workers-source-sg"
+      GroupDescription: attach this sg to an instance to let it access via ssh to the eks node
+      Tags:
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Project
+        Value: !Ref Project
+
+
+  EBSCNIManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        -
+          Effect: Allow
+          Action:
+          - "ec2:AttachVolume"
+          - "ec2:CreateSnapshot"
+          - "ec2:CreateTags"
+          - "ec2:CreateVolume"
+          - "ec2:DeleteSnapshot"
+          - "ec2:DeleteTags"
+          - "ec2:DeleteVolume"
+          - "ec2:DescribeInstances"
+          - "ec2:DescribeSnapshots"
+          - "ec2:DescribeTags"
+          - "ec2:DescribeVolumes"
+          - "ec2:DetachVolume"
+          Resource:
+          - '*'
+
+  EKSNodeIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Project}-${Environment}-${EKSClusterName}-eks-node-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+      - "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+      - "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+      - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+      - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+      - !Ref EBSCNIManagedPolicy
+      Tags:
+      - Key: Environment
+        Value: !Ref Environment
+      - Key: Project
+        Value: !Ref Project
+
+  EKSNodeGroup1:
+    Type: AWS::EKS::Nodegroup
+    Properties: 
+      AmiType: AL2_x86_64
+      ClusterName: !Sub "${Project}-${Environment}-${EKSClusterName}"
+      DiskSize: !Ref NodeDiskSize
+      ForceUpdateEnabled: false
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      NodegroupName: !Sub "${Project}-${Environment}-${EKSClusterName}-eks-nodegroup-1"
+      NodeRole: !GetAtt EKSNodeIAMRole.Arn
+      RemoteAccess:
+        Ec2SshKey: !Ref SshKey
+        SourceSecurityGroups:
+          - !Ref SSHAccessToNodeSG #attach this sg to an instance to access worker via ssh
+      ScalingConfig:
+        MaxSize: !Ref MaxSize
+        MinSize: !Ref MinSize
+        DesiredSize: !Ref DesiredSize
+      Subnets:
+        - !Ref SubnetIdAZ1
+        - !If
+          - OneNodeGroupInMultiAZ
+          - !Ref SubnetIdAZ2
+          - !Ref "AWS::NoValue"
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref Project
+
+  EKSNodeGroup2:
+    Condition: OneNodeGroupPerAZ
+    Type: AWS::EKS::Nodegroup
+    Properties: 
+      AmiType: AL2_x86_64
+      ClusterName: !Ref EKSClusterName
+      DiskSize: !Ref NodeDiskSize
+      ForceUpdateEnabled: false
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      NodegroupName: !Sub "${Project}-${Environment}-${EKSClusterName}-eks-nodegroup-2"
+      NodeRole: !GetAtt EKSNodeIAMRole.Arn
+      RemoteAccess:
+        Ec2SshKey: !Ref SshKey
+        SourceSecurityGroups:
+          - !Ref SSHAccessToNodeSG #attach this sg to an instance to access worker via ssh
+      ScalingConfig:
+        MaxSize: !Ref MaxSize
+        MinSize: !Ref MinSize
+        DesiredSize: !Ref DesiredSize
+      Subnets:
+        - !Ref SubnetIdAZ2
+      Tags:
+        Environment: !Ref Environment
+        Project: !Ref Project

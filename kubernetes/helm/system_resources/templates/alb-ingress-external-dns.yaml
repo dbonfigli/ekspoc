@@ -1,0 +1,76 @@
+---
+{{- if and .Values.ingressController.enabled .Values.ingressController.externalDNS.enabled -}}
+# got from https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+  namespace: kube-system
+  # If you're using Amazon EKS with IAM Roles for Service Accounts, specify the following annotation.
+  # Otherwise, you may safely omit it.
+  annotations:
+    # Substitute your account ID and IAM service role name below.
+    eks.amazonaws.com/role-arn: {{.Values.ingressController.externalDNS.IamRole}}
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  namespace: kube-system
+  name: external-dns
+rules:
+- apiGroups: [""]
+  resources: ["services","endpoints","pods"]
+  verbs: ["get","watch","list"]
+- apiGroups: ["extensions"]
+  resources: ["ingresses"]
+  verbs: ["get","watch","list"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list","watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  namespace: kube-system
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: kube-system
+  name: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: registry.opensource.zalan.do/teapot/external-dns:latest
+        args:
+        - --source=service #The resource types that are queried for endpoints; specify multiple times for multiple sources (required, options: service, ingress, node, fake, connector, istio-gateway, cloudfoundry, contour-ingressroute, crd, empty, skipper-routegroup)
+        - --source=ingress
+        #- --domain-filter=external-dns-test.my-org.com # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
+        - --provider=aws
+        - --policy=sync # Modify how DNS records are synchronized between sources and providers (default: sync, options: sync, upsert-only, create-only)
+        #- --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
+        - --registry=txt #used to keep track of things done by external-dns
+        - --txt-owner-id=my-hostedzone-identifier #When using the TXT registry, a name that identifies this instance of ExternalDNS
+      securityContext:
+        fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
+{{- end }}

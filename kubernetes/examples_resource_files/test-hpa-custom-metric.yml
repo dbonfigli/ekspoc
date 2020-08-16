@@ -1,0 +1,100 @@
+---
+# please note! you must have metric server installed to use hpa, and cloudwatch metric adapter
+apiVersion: metrics.aws/v1alpha1
+kind: ExternalMetric
+metadata:
+  name: php-apache-requests-external-metric
+spec:
+  name: phpapacherequests #only letters numbers and _, no -
+  resource:
+    resource: "deployment"
+  queries:
+    - id: php_apache_requests_external_metric
+      metricStat:
+        metric:
+          namespace: "AWS/ApplicationELB"
+          metricName: "RequestCount"
+          dimensions:
+            - name: LoadBalancer
+              value: "app/e5e519ad-default-phpapache-b95d/c8fea08ea71c0021"
+        period: 60
+        stat: Sum
+        unit: Count
+      returnData: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  selector:
+    matchLabels:
+      run: php-apache
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache-service
+  labels:
+    run: php-apache
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+  selector:
+    run: php-apache
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: "php-apache-ingress"
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+  labels:
+    app: "php-apache-ingress"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: php-apache-service
+              servicePort: 80
+---
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v2beta1
+metadata:
+  name: php-apache-requests-scaler
+spec:
+  maxReplicas: 10
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: php-apache
+  metrics:
+  - type: External
+    external:
+      metricName: php-apache-requests-external-metric
+      targetAverageValue: 10
+
+# then make requests to ingress and check if it scales, e.g. using:
+# while true; do sleep 1 ; curl http://e5e519ad-default-phpapache-b95d-596984143.eu-west-1.elb.amazonaws.com/ ; done
+# it shoud create 5 or 6 pods

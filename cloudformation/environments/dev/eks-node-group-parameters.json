@@ -1,0 +1,54 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "development"
+  },
+  {
+    "ParameterKey": "Project",
+    "ParameterValue": "ekspoc"
+  },
+  {
+    "ParameterKey": "EKSClusterName",
+    "ParameterValue": "ekspoc"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-000000"
+  },
+  {
+    "ParameterKey": "SubnetIdAZ1",
+    "ParameterValue": "subnet-000001"
+  },
+  {
+    "ParameterKey": "SubnetIdAZ2",
+    "ParameterValue": "subnet-000002"
+  },
+  {
+    "ParameterKey": "NodeDiskSize",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "NodeInstanceType",
+    "ParameterValue": "m5.large"
+  },
+  {
+    "ParameterKey": "MinSize",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MaxSize",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "DesiredSize",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "SshKey",
+    "ParameterValue": "ssh-key"
+  },
+  {
+    "ParameterKey": "OneNodeGroupInMultiAZ",
+    "ParameterValue": "true"
+  }
+]

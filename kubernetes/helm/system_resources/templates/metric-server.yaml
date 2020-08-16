@@ -1,0 +1,7 @@
+{{- if .Values.metricServer.enabled -}}
+
+{{ range $path, $_ := .Files.Glob "metrics-server/*.yaml" }}
+{{ $.Files.Get $path }}
+{{ end }}
+
+{{- end }}

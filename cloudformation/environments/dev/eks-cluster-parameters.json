@@ -1,0 +1,26 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "development"
+  },
+  {
+    "ParameterKey": "Project",
+    "ParameterValue": "ekspoc"
+  },
+  {
+    "ParameterKey": "EKSClusterName",
+    "ParameterValue": "ekspoc"
+  },
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "vpc-00000"
+  },
+  {
+    "ParameterKey": "SubnetIdAZ1",
+    "ParameterValue": "subnet-000001"
+  },
+  {
+    "ParameterKey": "SubnetIdAZ2",
+    "ParameterValue": "subnet-000002"
+  }
+]

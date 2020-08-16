@@ -1,0 +1,11 @@
+# Default values for test-package.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+nginxVersion: 1.17.8
+
+labels:
+  testlabel: test
+
+username: testusername1
+password: testpassword

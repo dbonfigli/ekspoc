@@ -1,0 +1,9 @@
+dependencies:
+- name: prometheus-operator
+  repository: https://charts.bitnami.com/bitnami
+  version: 0.14.0
+- name: grafana
+  repository: https://charts.bitnami.com/bitnami
+  version: 1.4.1
+digest: sha256:ec40decf658d02d9257898852fe2a66a8fe5ce9112553c341c65721f03084af7
+generated: "2020-04-08T18:18:51.179736+02:00"

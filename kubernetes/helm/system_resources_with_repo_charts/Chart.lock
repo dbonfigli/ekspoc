@@ -1,0 +1,18 @@
+dependencies:
+- name: cluster-autoscaler
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 7.2.2
+- name: metrics-server
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 2.11.1
+- name: aws-alb-ingress-controller
+  repository: http://storage.googleapis.com/kubernetes-charts-incubator
+  version: 1.0.0
+- name: external-dns
+  repository: https://charts.bitnami.com/bitnami
+  version: 2.21.2
+- name: kubernetes-dashboard
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 1.10.1
+digest: sha256:ecc13cb7d723b15ee413de5e66a74426f10eaa16ab2a3f81de9a462380c55dc7
+generated: "2020-04-23T15:47:02.302843+02:00"

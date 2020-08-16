@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "development"
+  },
+  {
+    "ParameterKey": "Project",
+    "ParameterValue": "ekspoc"
+  },
+  {
+    "ParameterKey": "OIDCProviderArn",
+    "ParameterValue": "arn:aws:iam::00000000000:oidc-provider/oidc.eks.eu-west-1.amazonaws.com/id/914A6F024554920658700000000"
+  },
+  {
+    "ParameterKey": "EKSClusterName",
+    "ParameterValue": "ekspoc"
+  }
+]
